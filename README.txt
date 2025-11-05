@@ -1,218 +1,206 @@
+╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                       MDTP (Markdown Transfer Protocol)                                        ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
-
-
-╔══════════════════════════════════════════════════════════════════════════════════════════════╗
-║                                  MDTP (Markdown Transfer Protocol)                           ║
-╚══════════════════════════════════════════════════════════════════════════════════════════════╝
-
-───────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  Version : 1.0
  Author  : Trevohack
-───────────────────────────────────────────────────────────────────────────────
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 
 
-= *OVERVIEW* = 
+===========================================================================================
+                                * O V E R V I E W *
+===========================================================================================
 
-MDTP is a lightweight, text-based protocol designed for serving and transmitting Markdown documents directly between clients and servers. It functions similarly to HTTP but is simplified, focusing on plain Markdown content instead of HTML. MDTP allows fast and minimalistic document delivery without requiring traditional web technologies like HTML, CSS, or JavaScript.
+MDTP is a lightweight, text-based protocol designed for serving and transmitting Markdown 
+documents directly between clients and servers. It functions similarly to HTTP but is 
+simplified and optimized for plain Markdown — no HTML, no CSS, no JavaScript.  
 
 The MDTP ecosystem includes:
+   • MDTP Server
+   • MDTP Client
+   • Protocol Parser
+   • Request/Response Handler
+   • MDTP Bridge (browser-compatible translator)
 
-* MDTP Server
-* MDTP Client
-* Protocol Parser
-* Request/Response Handler
-* MDTP Bridge (for viewing MDTP pages in standard web browsers)
 
----
+===========================================================================================
+                                1.  C O R E   C O N C E P T
+===========================================================================================
 
-1. Core Concept
-
----
-
-MDTP operates on its own protocol layer using TCP sockets (default port: 8585).
-It uses a simple, human-readable request and response structure that mirrors HTTP,
-but is explicitly optimized for Markdown transmission.
+MDTP operates as its own transport-layer protocol over TCP (default port: 8585).  
+It follows a request/response model similar to HTTP, but uses Markdown as the payload.  
 
 Example request:
-------------------------------------------------------------------------------------
-| GET /index.md MDTP/1.0                                                             |
-| Host: 127.0.0.1                                                                    | 
-| User-Agent: MDTP-Client/1.0                                                        |
-| Accept: text/markdown                                                              |
------------------------------------------------------------------------------------- 
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ GET /index.md MDTP/1.0                                                                     │
+│ Host: 127.0.0.1                                                                            │
+│ User-Agent: MDTP-Client/1.0                                                                │
+│ Accept: text/markdown                                                                      │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Example response:
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ MDTP/1.0 200 OK                                                                            │
+│ Content-Type: text/markdown                                                                │
+│ Content-Length: 1243                                                                       │
+│ Date: Sun, 03 Nov 2025 18:00:00 GMT                                                        │
+│ Server: MDTP-Server/1.0                                                                    │
+│                                                                                            │
+│ # Welcome to MDTP                                                                          │
+│                                                                                            │
+│ This document was served using the Markdown Transfer Protocol.                             │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 
 
-Example response: 
--------------------------------------------------------------------------------------- 
-| MDTP/1.0 200 OK                                                                    |
-| Content-Type: text/markdown                                                        |
-| Content-Length: 1243                                                               |
-| Date: Sun, 03 Nov 2025 18:00:00 GMT                                                |
-| Server: MDTP-Server/1.0                                                            |
-|                                                                                    | 
-| # Welcome to MDTP                                                                  |
-|                                                                                    |
-| This document was served using the Markdown Transfer Protocol.                     |
--------------------------------------------------------------------------------------- 
+===========================================================================================
+                                2.  S E R V E R   M O D U L E
+===========================================================================================
+
+The MDTP Server listens for incoming TCP connections and processes Markdown requests.  
+It parses the method, path, version, host, and user-agent, returning Markdown files from 
+the local directory.
+
+Supported method: GET  
+If “/” is requested, “./index.md” is served by default.  
+
+If a file does not exist, the server generates a 404 Markdown error document.
 
 
+===========================================================================================
+                                3.  S T A T U S   C O D E S
+===========================================================================================
 
-2. MDTP Server
+ ┌──────┬─────────────────────────────┐
+ │ Code │ Description                 │
+ ├──────┼─────────────────────────────┤
+ │ 200  │ OK – Request successful.    │
+ │ 400  │ Bad Request – Invalid data. │
+ │ 404  │ Not Found – File missing.   │
+ │ 500  │ Internal Error – Exception. │
+ └──────┴─────────────────────────────┘
+
+Every MDTP response includes:
+   • Timestamp (GMT)
+   • Server signature
+   • Content-Type: text/markdown
+   • Content-Length header
 
 
-The MDTP server listens for incoming connections on a specified port (default 8585).
-It reads client requests, parses the headers, and returns Markdown files from the
-current working directory.
+===========================================================================================
+                                4.  C L I E N T   M O D U L E
+===========================================================================================
 
-The request parser extracts the method (GET), path, version, host, and user agent.
-Supported methods:
-
-* GET  (Retrieve Markdown documents)
-
-The server locates files based on the requested path.
-If the request is "/", it automatically serves "./index.md".
-Files are read in text mode and served with Content-Type: text/markdown.
-
-If a requested file does not exist, the server responds with a Markdown 404 page.
-
----
-
-3. Status Codes
-
----
-
-MDTP defines several standard status codes for responses:
-
-200  OK                 - Request successful, document returned.
-400  Bad Request        - Malformed request or invalid syntax.
-404  Not Found          - Requested document not found on server.
-500  Internal Error     - Server encountered an unexpected condition.
-
-Each response includes a timestamp, server signature, and content length.
-The server dynamically generates headers using get_timestamp() for accurate time
-stamping in GMT format.
-
----
-
-4. MDTP Client
-
----
-
-The built-in MDTP client connects to an MDTP server via TCP, sends a request, and
-receives Markdown-formatted data.
-
-It builds a request similar to:
-GET /index.md MDTP/1.0
-Host: 127.0.0.1
-User-Agent: MDTP-Client/1.0
-
-The client then extracts the body after the double line break ("\r\n\r\n")
-and prints the raw Markdown content directly to the console.
+The MDTP Client connects to the server, sends a GET request, and prints the Markdown body.  
 
 Example usage:
-./mdtp client 127.0.0.1 /index.md
+   ./mdtp client 127.0.0.1 /index.md
 
----
+Workflow:
+   [ CLIENT ]  →  builds request  →  [ SERVER ]
+   [ SERVER ]  →  reads Markdown  →  [ CLIENT ]
+   [ CLIENT ]  →  renders Markdown to console
 
-5. MDTP Bridge
 
----
+===========================================================================================
+                                5.  M D T P   B R I D G E
+===========================================================================================
 
-Since web browsers like Firefox and Chrome cannot natively handle the "mdtp://"
-protocol, the MDTP Bridge was created to allow seamless viewing of MDTP sites
-within any standard browser.
+Browsers can’t natively handle “mdtp://” links — so the **MDTP Bridge** exists.  
+It runs an HTTP server (port 9999) that translates MDTP pages to HTML on the fly.
 
-The Bridge runs as a standalone server on port 9999 (default).
-It acts as an HTTP-to-MDTP translator:
+Bridge Flow:
+   ┌──────────────────────────────────────────────┐
+   │ Browser (HTTP)  →  MDTP Bridge  →  MDTP Server│
+   │ http://127.0.0.1:9999/127.0.0.1:8585/index.md │
+   └──────────────────────────────────────────────┘
 
-* Listens for HTTP requests from browsers ([http://127.0.0.1:9999/](http://127.0.0.1:9999/))
-* Extracts the target MDTP host and path (for example: /127.0.0.1:8585/index.md)
-* Connects to the MDTP server using the internal fetch_mdtp() function
-* Converts the received Markdown into styled HTML using markdown_to_html()
-* Sends the final HTML response back to the browser
+The bridge fetches Markdown, converts it to HTML using an internal parser,  
+then applies a modern styled template (supports bold, italic, code blocks, lists, etc).
 
-The Bridge applies a clean, modern, CSS-styled template for better readability.
-It supports headings, lists, code blocks, links, bold, italics, and inline code.
+Example banner:
+╔══════════════════════════════════════════════════════════════════════╗
+║                  MDTP HTTP Bridge Server - Running!                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  Browse MDTP sites in your regular browser                            ║
+║  Open: http://127.0.0.1:9999/                                         ║
+║  Direct: http://127.0.0.1:9999/127.0.0.1:8585/index.md                ║
+╚══════════════════════════════════════════════════════════════════════╝
 
-When running, it displays:
 
-╔════════════════════════════════════════════════════════╗
-║       MDTP HTTP Bridge Server - Running!               ║
-╠════════════════════════════════════════════════════════╣
-║  Browse MDTP sites in your regular web browser!        ║
-║  Open: [http://127.0.0.1:9999/](http://127.0.0.1:9999/)║                        
-║  Direct: [http://127.0.0.1:9999/127.0.0.1:8585/index.md║
-╚════════════════════════════════════════════════════════╝
+===========================================================================================
+                                6.  I N T E R N A L   W O R K F L O W
+===========================================================================================
 
----
+Flow Diagram:
+┌─────────────────────────────┐
+│  MDTP Client / Bridge       │
+└──────────────┬──────────────┘
+               │ Sends Request
+               ▼
+┌─────────────────────────────┐
+│  MDTP Server                │
+│  • Parses headers           │
+│  • Locates Markdown file    │
+│  • Builds MDTP response     │
+└──────────────┬──────────────┘
+               │ Sends Markdown
+               ▼
+┌─────────────────────────────┐
+│  MDTP Client                │
+│  • Extracts body            │
+│  • Displays Markdown        │
+└─────────────────────────────┘
 
-6. How It Works Internally
+If the Bridge is used:
+   MDTP → Bridge → HTML → Browser View
 
----
 
-Step 1:  The MDTP client or bridge sends a raw MDTP request using TCP.
-Step 2:  The MDTP server receives and parses the request.
-Step 3:  It locates the corresponding Markdown file in the current directory.
-Step 4:  The server constructs a valid MDTP response header and sends it.
-Step 5:  The client extracts the Markdown body from the response.
-Step 6:  The bridge (if used) converts the Markdown into styled HTML for browsers.
+===========================================================================================
+                                7.  D E S I G N   H I G H L I G H T S
+===========================================================================================
 
-This flow ensures a completely text-based transfer layer for human-readable content,
-removing all unnecessary overhead from traditional web stacks.
+ • Lightweight and transparent Markdown-first protocol  
+ • Fully text-readable request/response exchange  
+ • Pure C socket implementation, minimal dependencies  
+ • Built-in error handling and status codes  
+ • Optional Bridge layer for browsers  
+ • Modular design: protocol ↔ transport ↔ rendering  
 
----
 
-7. Design Highlights
+===========================================================================================
+                                8.  U S A G E   S U M M A R Y
+===========================================================================================
 
----
+Start the server:
+   ./mdtp server 8585
 
-• Lightweight Markdown-first protocol
-• Fully readable and debuggable text-based exchange
-• Minimal dependencies, pure C socket-based networking
-• Built-in status codes and server response handling
-• Bridge layer for browser compatibility
-• Clear separation between protocol and rendering layer
+Fetch a page using client:
+   ./mdtp client 127.0.0.1 /index.md
 
----
+View through your browser via Bridge:
+   http://127.0.0.1:9999/127.0.0.1:8585/index.md
 
-8. Usage Summary
 
----
+===========================================================================================
+                                9.  F U T U R E   E X T E N S I O N S
+===========================================================================================
 
-Start the MDTP server:
-./mdtp server 8585
+ • MDTP Secure (MDTPS) with TLS  
+ • Metadata headers (Theme, Author, Version)  
+ • Markdown directives for UI components  
+ • Native GUI MDTP Browser (“Eclipse”)  
+ • OS-level mdtp:// URL registration  
 
-Access it via the built-in client:
-./mdtp client 127.0.0.1 /index.md
 
-Or access it through your web browser:
-[http://127.0.0.1:9999/127.0.0.1:8585/index.md](http://127.0.0.1:9999/127.0.0.1:8585/index.md)
+===========================================================================================
+                                10.  L I C E N S E
+===========================================================================================
 
----
+MDTP 1.0 is released for educational and experimental use.  
+You may modify, extend, or integrate MDTP into non-commercial systems or research tools.
 
-9. Future Extensions
-
----
-
-Planned features include:
-
-* MDTP Secure (MDTPS) using TLS
-* Rich metadata headers (Author, Theme, Version)
-* Extended Markdown directives for custom UI
-* Native MDTP browser with animated rendering
-* System-level mdtp:// URI registration
-
----
-
-10. License
-
----
-
-MDTP 1.0 is released for educational and experimental purposes.
-You are free to modify, extend, or integrate the protocol into your own systems
-for non-commercial or research projects.
-
----
-
-EOF 
+--------------------------------------------------------------------------------------------
+                                        EOF  
+--------------------------------------------------------------------------------------------
