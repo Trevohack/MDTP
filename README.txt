@@ -157,6 +157,216 @@ If the Bridge is used:
    MDTP → Bridge → HTML → Browser View
 
 
+1. Basic Request/Response Flow
+───────────────────────────────────────────────────────────────────────────────
+
+         ┌────────────────────────────────────────────────────────────┐
+         │                      MDTP Client                           │
+         │  - Sends request for Markdown file                         │
+         │  - Parses response headers                                 │
+         │  - Displays document body                                  │
+         └──────────────┬─────────────────────────────────────────────┘
+                        │   TCP (Port 8585)
+                        ▼
+         ┌────────────────────────────────────────────────────────────┐
+         │                      MDTP Server                           │
+         │  - Accepts socket connection                               │
+         │  - Reads request (GET /file.md)                            │
+         │  - Locates file from current directory                     │
+         │  - Builds and sends response (MDTP/1.0)                    │
+         └────────────────────────────────────────────────────────────┘
+
+
+Request Example:
+──────────────────────────────
+GET /index.md MDTP/1.0
+Host: 127.0.0.1
+User-Agent: MDTP-Client/1.0
+──────────────────────────────
+
+Response Example:
+──────────────────────────────
+MDTP/1.0 200 OK
+Content-Type: text/markdown
+Content-Length: 1243
+
+# Hello World
+──────────────────────────────
+
+
+
+2. Network Data Exchange Overview
+───────────────────────────────────────────────────────────────────────────────
+
+┌────────────────────┐
+│   MDTP Client      │
+│ (e.g., Terminal)   │
+└─────────┬──────────┘
+          │
+          │  TCP Socket Request
+          ▼
+┌────────────────────┐
+│   MDTP Server      │
+│  (port 8585)       │
+│────────────────────│
+│ Parses Request     │
+│ Reads Markdown File│
+│ Sends Response     │
+└─────────┬──────────┘
+          │
+          │  TCP Markdown Response
+          ▼
+┌────────────────────┐
+│  MDTP Client       │
+│  Displays Markdown │
+└────────────────────┘
+
+
+
+3. Full Ecosystem Diagram (With Bridge)
+───────────────────────────────────────────────────────────────────────────────
+
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │                                BROWSER                                  │
+   │   (Firefox / Chrome / Edge)                                             │
+   │   Accesses: http://127.0.0.1:9999/127.0.0.1:8585/index.md               │
+   └──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      │ HTTP Request (Port 9999)
+                                      ▼
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │                            MDTP BRIDGE                                   │
+   │   - Receives HTTP request                                               │
+   │   - Extracts MDTP target (127.0.0.1:8585/index.md)                      │
+   │   - Sends MDTP Request to Server                                        │
+   │   - Converts Markdown → HTML                                            │
+   │   - Responds with Styled Web Page                                       │
+   └──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      │ MDTP Request (Port 8585)
+                                      ▼
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │                             MDTP SERVER                                  │
+   │   - Parses Request                                                      │
+   │   - Reads .md File                                                      │
+   │   - Sends Back Markdown Response                                        │
+   └──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      │ Markdown Response
+                                      ▼
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │                            MDTP BRIDGE                                   │
+   │   - Converts Markdown → HTML Template                                   │
+   │   - Adds Syntax Highlighting, Styles, and Layout                        │
+   │   - Returns Response to Browser                                         │
+   └──────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      │ HTTP Response (HTML)
+                                      ▼
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │                             BROWSER                                     │
+   │   - Renders the Markdown as HTML Page                                   │
+   │   - Fully readable with themes, headings, etc.                          │
+   └──────────────────────────────────────────────────────────────────────────┘
+
+
+
+4. Internal Data Flow (Low-Level Packet View)
+───────────────────────────────────────────────────────────────────────────────
+
+CLIENT SIDE:
+────────────
+1. Create TCP socket
+2. Connect to <Server_IP>:8585
+3. Send buffer:
+   "GET /file.md MDTP/1.0\r\nHost: ...\r\n\r\n"
+4. Wait for server response
+5. Parse until "\r\n\r\n" (Header end)
+6. Extract and display Markdown body
+
+SERVER SIDE:
+────────────
+1. Listen on port 8585
+2. Accept incoming socket
+3. Read raw request buffer
+4. Parse method, path, version, headers
+5. Check for file existence
+6. Build header + Markdown body
+7. Send full response buffer
+8. Close connection
+
+
+
+5. Example Network Timeline
+───────────────────────────────────────────────────────────────────────────────
+
+      ┌─────────────────────────────────────────────────────────────┐
+      │                      TIME SEQUENCE                         │
+      └─────────────────────────────────────────────────────────────┘
+      CLIENT                                SERVER
+      ──────────────────────────────────────────────────────────────
+      Connect ---------------------------------------------→
+      → "GET /index.md MDTP/1.0"
+      ← "MDTP/1.0 200 OK"
+      ← Markdown content stream
+      Connection closed
+      Markdown rendered in terminal / bridge
+
+      Total Latency: < 5 ms on localhost
+
+
+6. Bridge HTML Conversion Pipeline
+───────────────────────────────────────────────────────────────────────────────
+
+   ┌────────────────────┐
+   │ Markdown Document  │
+   └─────────┬──────────┘
+             │
+             ▼
+   ┌────────────────────┐
+   │ markdown_to_html() │
+   │ - Converts #, **, * │
+   │ - Parses code blocks│
+   │ - Builds <h1>, <p>  │
+   └─────────┬──────────┘
+             │
+             ▼
+   ┌────────────────────┐
+   │ HTML Template CSS  │
+   │ - Styles Markdown  │
+   │ - Adds visuals     │
+   └─────────┬──────────┘
+             │
+             ▼
+   ┌────────────────────┐
+   │ Browser Render     │
+   │ - MDTP/1.0 Tag     │
+   │ - Modern gradient  │
+   └────────────────────┘
+
+
+
+7. Example Architecture Map
+───────────────────────────────────────────────────────────────────────────────
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              MDTP NETWORK MAP                                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  [ Terminal Client ] ─────── TCP:8585 ───────► [ MDTP Server ]               │
+│                │                                          │                  │
+│                │                                          ▼                  │
+│                │                                [ Markdown Files (.md) ]     │
+│                │                                                             │
+│                ▼                                                             │
+│  [ MDTP Bridge ] ◄─────── TCP:8585 ─────── [ MDTP Server ]                   │
+│        │                                                                     │
+│        ▼                                                                     │
+│  [ Web Browser ] ◄────── HTTP:9999 ─────── [ MDTP Bridge ]                   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
 ===========================================================================================
                                 7.  D E S I G N   H I G H L I G H T S
 ===========================================================================================
