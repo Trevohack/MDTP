@@ -121,11 +121,11 @@ then applies a modern styled template (supports bold, italic, code blocks, lists
 
 Example banner:
 ╔══════════════════════════════════════════════════════════════════════╗
-║                  MDTP HTTP Bridge Server - Running!                   ║
+║                  MDTP HTTP Bridge Server - Running!                  ║
 ╠══════════════════════════════════════════════════════════════════════╣
-║  Browse MDTP sites in your regular browser                            ║
-║  Open: http://127.0.0.1:9999/                                         ║
-║  Direct: http://127.0.0.1:9999/127.0.0.1:8585/index.md                ║
+║  Browse MDTP sites in your regular browser                           ║
+║  Open: http://127.0.0.1:9999/                                        ║
+║  Direct: http://127.0.0.1:9999/127.0.0.1:8585/index.md               ║
 ╚══════════════════════════════════════════════════════════════════════╝
 
 
@@ -227,46 +227,48 @@ Content-Length: 1243
 ───────────────────────────────────────────────────────────────────────────────
 
    ┌──────────────────────────────────────────────────────────────────────────┐
-   │                                BROWSER                                  │
-   │   (Firefox / Chrome / Edge)                                             │
-   │   Accesses: http://127.0.0.1:9999/127.0.0.1:8585/index.md               │
-   └──────────────────────────────────────────────────────────────────────────┘
+   │                                BROWSER                                   │
+   │   (Firefox / Chrome / Edge)                                              │
+   │   Accesses: http://127.0.0.1:9999/127.0.0.1:8585/index.md                │ 
+   └──────────────────────────────────────────────────────────────────────────┘ 
+                                      │
+                                      │
                                       │
                                       │ HTTP Request (Port 9999)
                                       ▼
    ┌──────────────────────────────────────────────────────────────────────────┐
    │                            MDTP BRIDGE                                   │
-   │   - Receives HTTP request                                               │
-   │   - Extracts MDTP target (127.0.0.1:8585/index.md)                      │
-   │   - Sends MDTP Request to Server                                        │
-   │   - Converts Markdown → HTML                                            │
-   │   - Responds with Styled Web Page                                       │
+   │   - Receives HTTP request                                                │
+   │   - Extracts MDTP target (127.0.0.1:8585/index.md)                       │
+   │   - Sends MDTP Request to Server                                         │
+   │   - Converts Markdown → HTML                                             │
+   │   - Responds with Styled Web Page                                        │
    └──────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ MDTP Request (Port 8585)
                                       ▼
    ┌──────────────────────────────────────────────────────────────────────────┐
    │                             MDTP SERVER                                  │
-   │   - Parses Request                                                      │
-   │   - Reads .md File                                                      │
-   │   - Sends Back Markdown Response                                        │
+   │   - Parses Request                                                       │ 
+   │   - Reads .md File                                                       │
+   │   - Sends Back Markdown Response                                         │
    └──────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ Markdown Response
                                       ▼
    ┌──────────────────────────────────────────────────────────────────────────┐
    │                            MDTP BRIDGE                                   │
-   │   - Converts Markdown → HTML Template                                   │
-   │   - Adds Syntax Highlighting, Styles, and Layout                        │
-   │   - Returns Response to Browser                                         │
+   │   - Converts Markdown → HTML Template                                    │
+   │   - Adds Syntax Highlighting, Styles, and Layout                         │
+   │   - Returns Response to Browser                                          │
    └──────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ HTTP Response (HTML)
                                       ▼
    ┌──────────────────────────────────────────────────────────────────────────┐
-   │                             BROWSER                                     │
-   │   - Renders the Markdown as HTML Page                                   │
-   │   - Fully readable with themes, headings, etc.                          │
+   │                             BROWSER                                      │
+   │   - Renders the Markdown as HTML Page                                    │
+   │   - Fully readable with themes, headings, etc.                           │
    └──────────────────────────────────────────────────────────────────────────┘
 
 
@@ -301,7 +303,7 @@ SERVER SIDE:
 ───────────────────────────────────────────────────────────────────────────────
 
       ┌─────────────────────────────────────────────────────────────┐
-      │                      TIME SEQUENCE                         │
+      │                      TIME SEQUENCE                          │
       └─────────────────────────────────────────────────────────────┘
       CLIENT                                SERVER
       ──────────────────────────────────────────────────────────────
